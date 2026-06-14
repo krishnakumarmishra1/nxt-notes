@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Caveat:wght@500;700&family=Comic+Neue:wght@400;700&family=Dancing+Script:wght@500;700&family=Fira+Code:wght@400;600&family=Inconsolata:wght@400;600&family=Indie+Flower&family=Lora:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600&family=Nunito:wght@400;600&family=Open+Sans:wght@400;600&family=Oswald:wght@400;500&family=Pacifico&family=Playfair+Display:ital,wght@0,500;1,500&family=Poppins:wght@400;600&family=Raleway:wght@400;600&family=Roboto+Mono:wght@400;600&family=Roboto:wght@400;500&family=Satisfy&family=Shadows+Into+Light&display=swap');
+
+:root {
+  --color-primary: #2563eb; 
+  --color-primary-light: #eff6ff; 
+}
+
+.custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+
+/* 22+ Font Classes */
+.font-handwriting { font-family: 'Caveat', cursive; font-size: 1.25em; }
+.font-pacifico { font-family: 'Pacifico', cursive; font-size: 1.1em; }
+.font-mono-code { font-family: 'Roboto Mono', monospace; }
+.font-serif-elegant { font-family: 'Playfair Display', serif; }
+.font-comic { font-family: 'Comic Neue', cursive; font-size: 1.1em; }
+.font-roboto { font-family: 'Roboto', sans-serif; }
+.font-open-sans { font-family: 'Open Sans', sans-serif; }
+.font-montserrat { font-family: 'Montserrat', sans-serif; }
+.font-poppins { font-family: 'Poppins', sans-serif; }
+.font-raleway { font-family: 'Raleway', sans-serif; }
+.font-nunito { font-family: 'Nunito', sans-serif; }
+.font-oswald { font-family: 'Oswald', sans-serif; }
+.font-anton { font-family: 'Anton', sans-serif; }
+.font-merriweather { font-family: 'Merriweather', serif; }
+.font-lora { font-family: 'Lora', serif; }
+.font-playfair { font-family: 'Playfair Display', serif; }
+.font-fira-code { font-family: 'Fira Code', monospace; }
+.font-inconsolata { font-family: 'Inconsolata', monospace; }
+.font-dancing { font-family: 'Dancing Script', cursive; font-size: 1.2em; }
+.font-indie { font-family: 'Indie Flower', cursive; font-size: 1.1em; }
+.font-shadows { font-family: 'Shadows Into Light', cursive; font-size: 1.1em; }
+.font-satisfy { font-family: 'Satisfy', cursive; font-size: 1.2em; }
+
+.shape-rectangle { border-radius: 4px; }
+.shape-rounded { border-radius: 16px; }
+.shape-circle { border-radius: 32px; }
+.shape-torn { border-radius: 4px 4px 0 0; clip-path: polygon(0% 0%, 100% 0%, 100% calc(100% - 10px), 95% 100%, 90% calc(100% - 10px), 85% 100%, 80% calc(100% - 10px), 75% 100%, 70% calc(100% - 10px), 65% 100%, 60% calc(100% - 10px), 55% 100%, 50% calc(100% - 10px), 45% 100%, 40% calc(100% - 10px), 35% 100%, 30% calc(100% - 10px), 25% 100%, 20% calc(100% - 10px), 15% 100%, 10% calc(100% - 10px), 5% 100%, 0% calc(100% - 10px)); padding-bottom: 20px !important; }
+.shape-leaf { border-radius: 32px 4px 32px 4px !important; }
+.shape-tag { clip-path: polygon(20px 0%, 100% 0%, 100% 100%, 0% 100%, 0% 20px); border-radius: 4px; }
+
+/* NEW: Image Background Text Highlight (No Glass Box) */
+.img-text-highlight {
+  font-weight: 900 !important;
+  text-shadow: 0px 1px 3px rgba(0,0,0,0.8), 0px 2px 10px rgba(0,0,0,0.6);
+}
