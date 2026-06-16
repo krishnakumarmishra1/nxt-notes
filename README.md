@@ -1,16 +1,72 @@
-# React + Vite
+# 🚀 NXT Notes
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Your Next-Generation Cloud Note-Taking Experience.**
 
-Currently, two official plugins are available:
+NXT Notes is a highly customizable, enterprise-level, cloud-synced note-taking application inspired by Google Keep & Notion. Built with modern web technologies, it features a stunning Glassmorphism UI, advanced theming, rich text formatting, and seamless cloud synchronization.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+🔗 **Live Demo:** [nxt-notes.vercel.app](https://nxt-notes.vercel.app/)
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## ✨ Key Features
 
-## Expanding the ESLint configuration
+### 🎨 Advanced UI/UX & Theming
+- **Glassmorphism Design:** Beautiful translucent UI elements with blur effects.
+- **Global App Themes:** Choose from pre-defined gradients or pick any custom solid color for the entire app background.
+- **Note-Level Customization:** Change individual note background colors, text colors, or even upload custom background images!
+- **Dynamic Note Shapes:** Break the grid! Choose from unique note shapes like *Torn Paper*, *Leaf*, *Cut Corner*, *Circle*, and more.
+- **22+ Typography Options:** A rich library of Google Fonts with a live hover-preview feature.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### ⚡ Powerful Functionality
+- **Smart Checklists (To-Do):** Convert standard notes into interactive checklists with a single click.
+- **Auto-Save & Version History:** Never lose your data. Click outside to auto-save, and easily restore older versions of your notes using *Edit History*.
+- **Undo & Redo:** Full action tracking while creating or editing notes.
+- **Image Support:** Upload images to your notes with built-in client-side image compression (saving bandwidth & storage).
+- **Smart Label System:** Create, assign, and manage tags dynamically. Includes a global label management setting.
+- **Archive & Trash Management:** Keep your workspace clean. Soft-delete notes to Trash or hide them in the Archive folder.
+
+### ☁️ Cloud & Security
+- **Secure Authentication:** User signup & login powered by Supabase Auth.
+- **Real-Time Database Sync:** All notes are securely saved in PostgreSQL and synced instantly.
+- **Row Level Security (RLS):** Military-grade database rules ensure your notes are strictly private.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend:** React (Vite), Tailwind CSS v4
+- **Backend as a Service (BaaS):** Supabase (PostgreSQL, Authentication, Storage)
+- **Utilities:** `browser-image-compression` for optimizing uploads
+- **Deployment:** Vercel
+
+---
+
+## 🚀 Getting Started (Run Locally)
+
+Want to run this project on your local machine? Follow these simple steps:
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/your-username/nxt-notes.git
+cd nxt-notes
+
+2. Install dependencies
+
+npm install
+
+3. Set up Environment Variables
+
+Create a .env file in the root directory and add your Supabase credentials:
+
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+4. Start the development server
+
+npm run dev
+
+👨‍💻 Author
+
+Built with ❤️ by @krishnakumarmishra1
+
+
