@@ -2,7 +2,10 @@ import ThemeSelector from './ThemeSelector';
 
 export default function Sidebar({ isOpen, uniqueLabels, selectedCategory, setSelectedCategory, setAppTheme }) {
   return (
-    <aside className={`${isOpen ? 'w-64' : 'w-0 sm:w-20'} bg-white/30 backdrop-blur-xl border-r border-white/40 flex flex-col h-full shadow-sm z-10 transition-all duration-300 overflow-hidden`}>
+    <aside 
+      // FIX: Mobile पर absolute, Desktop पर relative. स्मूथ स्लाइड एनीमेशन।
+      className={`absolute md:relative z-50 h-full bg-white/40 backdrop-blur-2xl border-r border-white/50 flex flex-col shadow-2xl md:shadow-sm transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64 md:translate-x-0 md:w-20'}`}
+    >
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar">
         
         <div onClick={() => setSelectedCategory('All Notes')} className={`px-4 py-3 rounded-xl cursor-pointer font-medium text-sm transition-all flex items-center gap-3 ${selectedCategory === 'All Notes' ? 'bg-white/60 text-[var(--color-primary)] shadow-sm' : 'text-gray-800 hover:bg-white/40'}`}>
@@ -10,7 +13,6 @@ export default function Sidebar({ isOpen, uniqueLabels, selectedCategory, setSel
           {isOpen && <span>All Notes</span>}
         </div>
 
-        {/* Archive Folder */}
         <div onClick={() => setSelectedCategory('Archive')} className={`px-4 py-3 rounded-xl cursor-pointer font-medium text-sm transition-all flex items-center gap-3 ${selectedCategory === 'Archive' ? 'bg-white/60 text-[var(--color-primary)] shadow-sm' : 'text-gray-800 hover:bg-white/40'}`}>
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="21 8 21 21 3 21 3 8"/><rect width="22" height="5" x="1" y="3" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
           {isOpen && <span>Archive</span>}
