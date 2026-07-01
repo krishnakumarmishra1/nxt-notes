@@ -11,13 +11,11 @@ function App() {
   const [notes, setNotes] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All Notes');
   const [appTheme, setAppTheme] = useState(localStorage.getItem('nxt-app-theme') || '#f9fafb');
-  
-  // FIX: मोबाइल पर साइडबार डिफ़ॉल्ट रूप से बंद रहेगा, डेस्कटॉप पर खुला रहेगा
-  const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
-  
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid'); 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const [customNoteBgs, setCustomNoteBgs] = useState(JSON.parse(localStorage.getItem('nxt-custom-note-bgs')) || []);
 
   useEffect(() => {
@@ -42,16 +40,16 @@ function App() {
 
   const uniqueLabels = Array.from(new Set(notes.flatMap(note => note.labels || [])));
 
-  // FIX: मोबाइल पर कैटेगरी चुनने के बाद साइडबार अपने-आप बंद हो जाएगा
+  // मोबाइल पर कैटेगरी चुनते ही साइडबार ऑटोमैटिक बंद हो जाएगा
   const handleCategorySelect = (category) => {
     setSelectedCategory(category);
-    if (window.innerWidth < 768) {
+    if (window.innerWidth < 640) {
       setIsSidebarOpen(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full font-sans overflow-hidden transition-colors duration-500" style={{ background: appTheme }}>
+    <div className="flex flex-col h-screen w-full font-sans overflow-hidden transition-colors duration-500" style={{ background: appTheme }}>
       <TopBar 
         toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} 
         searchQuery={searchQuery} setSearchQuery={setSearchQuery}
@@ -60,17 +58,20 @@ function App() {
       />
       <div className="flex flex-1 overflow-hidden relative">
         
-        {/* FIX: मोबाइल के लिए डार्क ओवरले (बाहर क्लिक करने पर बंद होगा) */}
+        {/* MOBILE OVERLAY: डार्क पर्दा जिसपर क्लिक करने से साइडबार बंद हो जाएगा */}
         {isSidebarOpen && (
           <div 
-            className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm z-40 md:hidden" 
-            onClick={() => setIsSidebarOpen(false)}
+            className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm z-[90] sm:hidden" 
+            onClick={() => setIsSidebarOpen(false)} 
           />
         )}
 
         <Sidebar 
-          isOpen={isSidebarOpen} uniqueLabels={uniqueLabels} 
-          selectedCategory={selectedCategory} setSelectedCategory={handleCategorySelect} 
+          isOpen={isSidebarOpen} 
+          toggleSidebar={() => setIsSidebarOpen(false)} // Pass function for Close Button
+          uniqueLabels={uniqueLabels} 
+          selectedCategory={selectedCategory} 
+          setSelectedCategory={handleCategorySelect} 
           setAppTheme={setAppTheme} 
         />
         

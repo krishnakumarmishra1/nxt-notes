@@ -91,14 +91,15 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
 
       if (isEditingMode) { handleEditChange({ bg_image_url: publicUrl, color: '' }); } 
       else { setNewBgImage(publicUrl); setNewColor(''); }
-      
     } catch (error) { alert("Failed to upload background theme."); }
     finally { setIsUploadingBg(false); } 
   };
 
-  const handleAddNote = async (e) => {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    if (!title.trim() && !content.trim() && newChecklistItems.length === 0 && !imageFile && !newBgImage) { setIsNewBoxExpanded(false); return; }
+  const handleAddNote = async () => {
+    if (!title.trim() && !content.trim() && newChecklistItems.length === 0 && !imageFile && !newBgImage) { 
+      setIsNewBoxExpanded(false); 
+      return; 
+    }
     setIsSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -122,21 +123,21 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
     } finally { setIsSaving(false); }
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showHistoryModal || isToolbarMenuOpen || isClosingEdit) return; 
-      if (isNewBoxExpanded && newNoteRef.current && !newNoteRef.current.contains(event.target)) {
-        handleAddNote();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isNewBoxExpanded, title, content, imageFile, newColor, newTextColor, newBgImage, newFont, newShape, newLabels, isNewChecklist, newChecklistItems, showHistoryModal, isToolbarMenuOpen, isClosingEdit]);
-
   const openEditModal = (note) => {
     if (note.is_trashed) return;
     setEditingNote(note); setNoteHistory([{ title: note.title, content: note.content }]); setHistoryIndex(0);
     setIsClosingEdit(false);
+    
+    // Push history state for Mobile Back Button
+    if (window.innerWidth < 640) window.history.pushState({ noteModal: 'edit' }, '');
+  };
+
+  const handleOpenNewBox = () => {
+    if (!isNewBoxExpanded) {
+      setIsNewBoxExpanded(true);
+      // Push history state for Mobile Back Button
+      if (window.innerWidth < 640) window.history.pushState({ noteModal: 'new' }, '');
+    }
   };
 
   const handleEditChange = (field, value) => {
@@ -185,6 +186,60 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
     }, 300);
   };
 
+  // SMART TRIGGER CLOSE: Handles Mobile Back Button & Desktop Close
+  const triggerClose = () => {
+    if (window.innerWidth < 640 && window.history.state?.noteModal) {
+      window.history.back(); // This triggers popstate
+    } else {
+      if (isNewBoxExpanded) handleAddNote();
+      if (editingNote) saveAndCloseEdit();
+    }
+  };
+
+  // PHONE HARDWARE BACK BUTTON LISTENER
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isNewBoxExpanded) handleAddNote();
+      if (editingNote) saveAndCloseEdit();
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isNewBoxExpanded, title, content, imageFile, newColor, newTextColor, newBgImage, newFont, newShape, newLabels, isNewChecklist, newChecklistItems, editingNote, showHistoryModal]);
+
+  // AUTO-SAVE ON CATEGORY CLICK ("All Notes" ya koi folder dabane par)
+  const prevCat = useRef(selectedCategory);
+  const latestState = useRef({ isNewBoxExpanded, editingNote, handleAddNote, saveAndCloseEdit });
+  
+  useEffect(() => {
+    latestState.current = { isNewBoxExpanded, editingNote, handleAddNote, saveAndCloseEdit };
+  });
+
+  useEffect(() => {
+    if (prevCat.current !== selectedCategory) {
+      const { isNewBoxExpanded, editingNote, handleAddNote, saveAndCloseEdit } = latestState.current;
+      if (isNewBoxExpanded) handleAddNote();
+      if (editingNote) saveAndCloseEdit();
+      
+      // Also clear history state if modal was open on mobile
+      if (window.innerWidth < 640 && window.history.state?.noteModal) {
+         window.history.back();
+      }
+      prevCat.current = selectedCategory;
+    }
+  }, [selectedCategory]);
+
+  // OUTSIDE CLICK SAVER
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showHistoryModal || isToolbarMenuOpen || isClosingEdit) return; 
+      if (isNewBoxExpanded && newNoteRef.current && !newNoteRef.current.contains(event.target)) {
+        triggerClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isNewBoxExpanded, showHistoryModal, isToolbarMenuOpen, isClosingEdit]);
+
   const restoreVersion = (historyItem) => {
     setEditingNote({ ...editingNote, title: historyItem.title, content: historyItem.content, is_checklist: historyItem.is_checklist, checklist_items: historyItem.checklist_items });
     setShowHistoryModal(false); 
@@ -205,7 +260,7 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setIsNewBoxExpanded(true);
+    handleOpenNewBox();
     setIsUploadingBg(true); 
     try {
       const compressedFile = await imageCompression(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1080 });
@@ -234,15 +289,15 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
     const removeItem = (id) => setItems(items.filter(item => item.id !== id));
     const addItem = () => setItems([...items, { id: crypto.randomUUID(), text: '', is_completed: false }]);
     return (
-      <div className="flex flex-col gap-2 mt-2 mb-4 w-full">
+      <div className="flex flex-col flex-1 gap-2 mt-2 w-full overflow-y-auto custom-scrollbar pr-2">
         {items.map(item => (
-          <div key={item.id} className="flex items-center gap-3 w-full group">
+          <div key={item.id} className="flex items-center gap-3 w-full group shrink-0">
             <input type="checkbox" checked={item.is_completed} onChange={(e) => updateItem(item.id, item.text, e.target.checked)} className="w-5 h-5 cursor-pointer text-blue-600 rounded-md border-2 border-gray-400" />
             <input type="text" style={{ color: item.is_completed ? '#9ca3af' : textColor }} value={item.text} onChange={(e) => updateItem(item.id, e.target.value, item.is_completed)} placeholder="List item" className={`flex-1 bg-transparent outline-none font-bold ${item.is_completed ? 'line-through opacity-70' : ''} ${fontClass} ${highlightClass}`} autoFocus={item.text === ''} />
             <button type="button" onClick={() => removeItem(item.id)} className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">✕</button>
           </div>
         ))}
-        <div className="flex items-center gap-3 mt-1 opacity-70 hover:opacity-100 transition-opacity border-t border-black/10 pt-2">
+        <div className="flex items-center gap-3 mt-1 opacity-70 hover:opacity-100 transition-opacity border-t border-black/10 pt-2 shrink-0">
           <span className="text-2xl text-gray-500 leading-none pb-1 font-bold">+</span>
           <input type="text" style={{ color: textColor }} placeholder="List item" onFocus={addItem} value="" onChange={()=>{}} className={`flex-1 bg-transparent outline-none font-bold ${fontClass} ${highlightClass}`} />
         </div>
@@ -281,36 +336,53 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
   return (
     <main className="flex-1 flex flex-col bg-transparent h-full overflow-y-auto relative">
       
+      {/* NEW NOTE BOX */}
       {selectedCategory !== 'Trash' && selectedCategory !== 'Archive' && (
         <div className="p-4 md:p-8 pb-4">
-          {/* MOBILE FULL SCREEN TRICK APPLIED HERE */}
           <div 
             ref={newNoteRef} 
-            className={`mx-auto group transition-all duration-300 ${isNewBoxExpanded ? 'fixed inset-0 z-[80] flex flex-col sm:relative sm:inset-auto sm:z-[60] sm:block sm:max-w-4xl' : 'relative z-20 max-w-3xl'}`} 
-            onClick={() => !isNewBoxExpanded && setIsNewBoxExpanded(true)}
+            className={`mx-auto group transition-all duration-300 flex flex-col ${isNewBoxExpanded ? 'fixed inset-0 z-[80] sm:relative sm:inset-auto sm:z-[60] sm:max-w-4xl bg-white sm:bg-transparent' : 'relative z-20 max-w-3xl px-2 sm:px-0'}`} 
+            onClick={handleOpenNewBox}
           >
             <div className={`absolute inset-0 z-0 shadow-md transition-all bg-cover bg-center ${newShape} ${isNewBoxExpanded ? 'border-0 sm:border border-gray-300 rounded-none sm:rounded-2xl' : 'border border-gray-300 rounded-2xl'}`} style={getBgStyle(newColor, newBgImage)}>
               {newBgImage && <div className={`absolute inset-0 bg-black/20 ${isNewBoxExpanded ? 'rounded-none sm:rounded-2xl' : 'rounded-2xl'}`}></div>}
             </div>
             
-            <div className={`relative z-10 flex flex-col ${isNewBoxExpanded ? 'h-full p-4 sm:p-6' : 'p-4 md:p-6'}`}>
+            <div className={`relative z-10 flex flex-col flex-1 h-full ${isNewBoxExpanded ? '' : 'p-4 md:p-6'}`}>
+              
+              {/* MOBILE FULL-SCREEN HEADER BACK BUTTON */}
+              {isNewBoxExpanded && (
+                <div className="sm:hidden flex items-center justify-between px-4 py-3 shrink-0 bg-white/40 backdrop-blur-md border-b border-black/10 z-20 sticky top-0">
+                  <button type="button" onClick={triggerClose} className="flex items-center gap-1 font-bold text-gray-800 bg-white/50 px-3 py-1.5 rounded-lg shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg> Back
+                  </button>
+                  <span className="text-sm font-bold text-gray-600">New Note</span>
+                </div>
+              )}
+
               {isUploadingBg && (
                 <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-[100] flex flex-col items-center justify-center rounded-2xl">
                   <svg className="animate-spin h-8 w-8 text-blue-600 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </div>
               )}
 
-              <div className={`flex-1 overflow-y-auto custom-scrollbar ${isNewBoxExpanded ? 'pb-20 sm:pb-0' : ''}`}>
-                {isNewBoxExpanded && <input type="text" style={{ color: newTextColor }} placeholder="Title" value={title} onChange={(e) => handleNewChange('title', e.target.value)} className={`w-full outline-none text-2xl md:text-3xl font-bold placeholder-gray-500 mb-3 bg-transparent px-2 mt-4 sm:mt-0 ${activeFontNew} ${newTextHighlight}`} />}
-                {isNewChecklist ? <ChecklistEditor items={newChecklistItems} setItems={setNewChecklistItems} fontClass={activeFontNew} textColor={newTextColor} highlightClass={newTextHighlight} /> : <textarea style={{ color: newTextColor }} placeholder="Write Your NXT Note..." value={content} onChange={(e) => handleNewChange('content', e.target.value)} className={`w-full outline-none text-lg md:text-xl placeholder-gray-600 resize-none bg-transparent font-medium px-2 ${activeFontNew} ${newTextHighlight} ${isNewBoxExpanded ? 'min-h-[150px]' : 'h-7'}`} />}
+              {/* WRAPPER TO PUSH TAGS TO BOTTOM: flex-1 ensures it takes full height on mobile */}
+              <div className={`flex-1 flex flex-col overflow-y-auto custom-scrollbar ${isNewBoxExpanded ? 'p-4 sm:p-6' : ''}`}>
+                {isNewBoxExpanded && <input type="text" style={{ color: newTextColor }} placeholder="Title" value={title} onChange={(e) => handleNewChange('title', e.target.value)} className={`w-full shrink-0 outline-none text-2xl md:text-3xl font-bold placeholder-gray-500 mb-3 bg-transparent px-2 ${activeFontNew} ${newTextHighlight}`} />}
+                
+                {isNewChecklist ? <ChecklistEditor items={newChecklistItems} setItems={setNewChecklistItems} fontClass={activeFontNew} textColor={newTextColor} highlightClass={newTextHighlight} /> : <textarea style={{ color: newTextColor }} placeholder="Write Your NXT Note..." value={content} onChange={(e) => handleNewChange('content', e.target.value)} className={`w-full outline-none text-lg md:text-xl placeholder-gray-600 resize-none bg-transparent font-medium px-2 flex-1 min-h-[50px] ${activeFontNew} ${newTextHighlight}`} />}
+                
                 {imagePreview && (
-                  <div className="relative mb-3 mt-3"><img src={imagePreview} className="w-full max-h-72 object-cover rounded-xl shadow-sm" /><button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 bg-gray-900/80 text-white rounded-full p-1.5 hover:bg-red-600"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+                  <div className="relative mb-3 mt-3 shrink-0"><img src={imagePreview} className="w-full h-48 object-cover rounded-xl shadow-sm" /><button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 bg-gray-900/80 text-white rounded-full p-1.5 hover:bg-red-600"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
                 )}
-                {newLabels.length > 0 && <div className="flex flex-wrap gap-1.5 px-2 mt-2">{newLabels.map(l => <span key={l} className="bg-gray-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">{l}</span>)}</div>}
+                
+                {/* LABELS AT THE BOTTOM OF THE SCROLLABLE AREA */}
+                {newLabels.length > 0 && <div className="shrink-0 mt-auto pt-4 flex flex-wrap gap-1.5 px-2 mb-2">{newLabels.map(l => <span key={l} className="bg-gray-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">{l}</span>)}</div>}
               </div>
 
+              {/* Toolbar at bottom */}
               {isNewBoxExpanded && (
-                <div className="absolute bottom-0 left-0 right-0 sm:static sm:mt-2 sm:pt-2 sm:border-t sm:border-black/10 bg-white/90 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none px-2 pb-2 sm:px-0 sm:pb-0 z-50">
+                <div className="shrink-0 bg-white/90 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none px-2 pb-4 pt-2 sm:px-0 sm:pb-0 sm:mt-2 sm:border-t sm:border-black/10 z-50">
                   <NoteToolbar 
                     isEditing={true} appTheme={appTheme}
                     currentFont={newFont} onFontChange={setNewFont} onFontHover={setPreviewFontNew}
@@ -319,7 +391,7 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
                     onThemeChange={(theme) => { if(theme.color!==undefined) setNewColor(theme.color); if(theme.bg_image_url!==undefined) setNewBgImage(theme.bg_image_url); }}
                     currentColor={newColor} currentBgImage={newBgImage} onCustomBgUpload={(file) => handleCustomBgUpload(file, false)} customNoteBgs={customNoteBgs}
                     onAddImage={() => fileInputRef.current.click()} onToggleLabel={handleToggleNewLabel} allLabels={allLabels} currentLabels={newLabels} isChecklist={isNewChecklist} onToggleChecklist={toggleNewChecklist} onUndo={undoNew} onRedo={redoNew} canUndo={newHistoryIndex > 0} canRedo={newHistoryIndex < newHistory.length - 1} 
-                    onClose={() => { setIsNewBoxExpanded(false); handleAddNote(); }}
+                    onClose={triggerClose} // Smart Close!
                     onMenuToggle={setIsToolbarMenuOpen} hasBgImage={!!newBgImage}
                   />
                 </div>
@@ -330,6 +402,7 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
         </div>
       )}
 
+      {/* Grid of Notes */}
       <div className="p-4 md:p-8 pt-4">
         {selectedCategory !== 'All Notes' && <h2 className={`text-lg font-bold mb-4 px-2 ${selectedCategory === 'Trash' ? 'text-red-600' : 'text-gray-600'}`}>{selectedCategory === 'Trash' ? 'Trash (Recycle Bin)' : selectedCategory}</h2>}
         <div className={gridClass}>
@@ -337,11 +410,11 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
         </div>
       </div>
 
-      {/* Main Edit Modal (RESPONSIVE: MOBILE FULL SCREEN, DESKTOP 4XL) */}
+      {/* EDIT MODAL (RESPONSIVE FULL SCREEN) */}
       {editingNote && !editingNote.is_trashed && (
         <div 
           className={`fixed inset-0 bg-gray-900/60 flex items-center justify-center sm:p-6 md:p-8 z-[60] backdrop-blur-md transition-opacity duration-300 ease-in-out ${(showHistoryModal || isClosingEdit) ? 'opacity-0' : 'opacity-100'}`} 
-          onMouseDown={saveAndCloseEdit}
+          onMouseDown={triggerClose}
         >
           <div 
             className={`relative shadow-2xl w-full flex flex-col z-50 transition-all duration-300 ease-out transform ${isClosingEdit ? 'scale-95 translate-y-4 opacity-0' : 'scale-100 translate-y-0 opacity-100'} h-full sm:h-auto sm:max-h-[90vh] sm:max-w-4xl sm:rounded-2xl`} 
@@ -352,11 +425,21 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
               {editingNote.bg_image_url && <div className="absolute inset-0 bg-black/20 sm:rounded-2xl"></div>}
             </div>
             
-            <div className="relative z-10 pt-6 pb-2 px-4 sm:px-6 flex flex-col h-full">
-              <div className="flex-1 overflow-y-auto pr-2 pb-24 custom-scrollbar">
+            <div className="relative z-10 flex flex-col flex-1 h-full overflow-hidden">
+              
+              {/* MOBILE FULL-SCREEN HEADER BACK BUTTON */}
+              <div className="sm:hidden flex items-center justify-between px-4 py-3 shrink-0 bg-white/40 backdrop-blur-md border-b border-black/10 z-20 sticky top-0">
+                <button type="button" onClick={triggerClose} className="flex items-center gap-1 font-bold text-gray-800 bg-white/50 px-3 py-1.5 rounded-lg shadow-sm">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m15 18-6-6 6-6"/></svg> Back
+                </button>
+                {editingNote.updated_at && <span className="text-xs font-bold text-gray-600 bg-white/50 px-2 py-1 rounded">Edited {formatTime(editingNote.updated_at || editingNote.created_at)}</span>}
+              </div>
+
+              {/* CONTENT AREA (flex-1 ensures it expands fully) */}
+              <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 md:pt-6 pb-4 custom-scrollbar flex flex-col">
                 
                 {editingNote.image_url && (
-                  <div className="relative mb-4">
+                  <div className="relative mb-4 shrink-0">
                     <img src={editingNote.image_url} className="w-full max-h-72 object-contain rounded-xl bg-black/5" />
                     <button type="button" onClick={() => handleEditChange('image_url', null)} className="absolute top-2 right-2 bg-gray-900/80 text-white rounded-full p-1.5 hover:bg-red-600 shadow-md"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
                   </div>
@@ -367,16 +450,18 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
                   const editTextHighlight = editingNote.bg_image_url ? 'img-text-highlight' : '';
                   return (
                     <>
-                      <input type="text" style={{ color: editingNote.text_color || '#111827' }} value={editingNote.title} onChange={(e) => handleEditChange('title', e.target.value)} className={`w-full outline-none text-3xl sm:text-4xl font-bold mb-4 bg-transparent ${activeFontEdit} ${editTextHighlight}`} placeholder="Title" />
-                      {editingNote.is_checklist ? <ChecklistEditor items={editingNote.checklist_items || []} setItems={(items) => setEditingNote({...editingNote, checklist_items: items})} fontClass={activeFontEdit} textColor={editingNote.text_color || '#111827'} highlightClass={editTextHighlight} /> : <textarea style={{ color: editingNote.text_color || '#111827' }} value={editingNote.content} onChange={(e) => handleEditChange('content', e.target.value)} className={`w-full outline-none text-xl sm:text-2xl resize-none flex-1 min-h-[300px] bg-transparent font-medium ${activeFontEdit} ${editTextHighlight}`} placeholder="Note content..." />}
+                      <input type="text" style={{ color: editingNote.text_color || '#111827' }} value={editingNote.title} onChange={(e) => handleEditChange('title', e.target.value)} className={`w-full shrink-0 outline-none text-2xl md:text-3xl font-bold mb-4 bg-transparent px-1 ${activeFontEdit} ${editTextHighlight}`} placeholder="Title" />
+                      {editingNote.is_checklist ? <ChecklistEditor items={editingNote.checklist_items || []} setItems={(items) => setEditingNote({...editingNote, checklist_items: items})} fontClass={activeFontEdit} textColor={editingNote.text_color || '#111827'} highlightClass={editTextHighlight} /> : <textarea style={{ color: editingNote.text_color || '#111827' }} value={editingNote.content} onChange={(e) => handleEditChange('content', e.target.value)} className={`w-full outline-none text-xl sm:text-2xl resize-none flex-1 min-h-[150px] bg-transparent font-medium px-1 ${activeFontEdit} ${editTextHighlight}`} placeholder="Note content..." />}
                     </>
                   );
                 })()}
                 
-                {editingNote.labels && editingNote.labels.length > 0 && <div className="flex flex-wrap gap-1.5 mb-2 mt-4">{editingNote.labels.map(l => <span key={l} className="bg-gray-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-full">{l}</span>)}</div>}
+                {/* TAGS PUSHED TO BOTTOM */}
+                {editingNote.labels && editingNote.labels.length > 0 && <div className="shrink-0 mt-auto pt-4 flex flex-wrap gap-1.5 mb-2"><div className="flex flex-wrap gap-1.5">{editingNote.labels.map(l => <span key={l} className="bg-gray-900 text-white text-[11px] font-bold px-2.5 py-1 rounded-full shadow-sm">{l}</span>)}</div></div>}
               </div>
               
-              <div className="absolute bottom-0 left-0 right-0 sm:static shrink-0 pt-2 border-t border-black/10 mt-2 bg-white/90 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none px-4 pb-4 sm:px-0 sm:pb-0 z-50 sm:rounded-b-2xl">
+              {/* FLAT TOOLBAR AT BOTTOM */}
+              <div className="shrink-0 px-4 pb-4 sm:px-6 sm:pb-0 sm:pt-2 sm:border-t border-black/10 mt-2 bg-white/90 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none z-50 sm:rounded-b-2xl">
                 <NoteToolbar 
                   isEditing={true} appTheme={appTheme}
                   currentFont={editingNote.font_family} onFontChange={(f) => handleEditChange('font_family', f)} onFontHover={setPreviewFontEdit} currentShape={editingNote.frame_style} onShapeChange={(s) => handleEditChange('frame_style', s)} 
@@ -396,7 +481,7 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
                   onDelete={async () => { await supabase.from('notes').update({ is_trashed: true }).eq('id', editingNote.id); setEditingNote(null); fetchNotes(); }} onCopy={(e) => { handleCopyNote(e, editingNote); setEditingNote(null); }} onArchive={async (e) => { e.stopPropagation(); await supabase.from('notes').update({ is_archived: !editingNote.is_archived }).eq('id', editingNote.id); setEditingNote(null); fetchNotes(); }} isArchived={editingNote.is_archived} 
                   lastEdited={formatTime(editingNote.updated_at || editingNote.created_at)} 
                   onUndo={undoEdit} onRedo={redoEdit} canUndo={historyIndex > 0} canRedo={historyIndex < noteHistory.length - 1} 
-                  onClose={saveAndCloseEdit} 
+                  onClose={triggerClose} // Smart Close!
                   hasBgImage={!!editingNote.bg_image_url}
                 />
                 <input type="file" accept="image/*" ref={editFileInputRef} onChange={handleEditImageChange} className="hidden" />
@@ -408,7 +493,7 @@ export default function MainArea({ notes, fetchNotes, selectedCategory, allLabel
 
       {/* History Modal */}
       {showHistoryModal && editingNote && (
-        <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center p-4 z-[90] transition-opacity">
+        <div className="fixed inset-0 bg-gray-900/60 flex items-center justify-center p-4 sm:p-8 z-[90] transition-opacity">
           <div className="bg-white sm:rounded-2xl shadow-2xl w-full h-full sm:h-auto sm:max-h-[85vh] sm:max-w-2xl p-4 sm:p-6 relative flex flex-col">
             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
               <h2 className="text-xl font-bold text-gray-900">Version History</h2>
